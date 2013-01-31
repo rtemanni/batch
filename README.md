@@ -1,2 +1,1 @@
-batch
-=====
+functions to useful for detecting batch effects

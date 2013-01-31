@@ -1,0 +1,18 @@
+\name{log2CPM}
+\alias{log2CPM}
+\title{Compute log2(quantile counts per mil reads) and library size for each sample}
+\usage{
+  log2CPM(qcounts)
+}
+\arguments{
+  \item{qcounts}{quantile normalized counts}
+}
+\value{
+  list containing log2(quantile counts per mil reads) and
+  library sizes
+}
+\description{
+  Compute log2(quantile counts per mil reads) and library
+  size for each sample
+}
+

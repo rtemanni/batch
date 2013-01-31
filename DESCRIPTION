@@ -10,6 +10,3 @@ Depends:
     corpcor,
     preprocessCore,
     sva,
-Collate:
-    'explore.R'
-    'transform.R'
