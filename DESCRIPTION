@@ -6,7 +6,6 @@ License: Artistic-2.0
 Title: Batch effects (RNA-Seq)
 Description: Implements pipleline to check for batch effects and possibly remove them. 
 Depends:
-    matrixStats,
     limma,
     corpcor,
     preprocessCore,
