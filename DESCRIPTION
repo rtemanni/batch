@@ -1,0 +1,16 @@
+Package: batch
+Maintainer: Kwame Okrah <kwame.okrah@gmail.com>
+Author: Kwame Okrah, Hector Corrada Bravo
+Version: 1.0
+License: Artistic-2.0
+Title: Batch effects (RNA-Seq)
+Description: Implements pipleline to check for batch effects and possibly remove them. 
+Depends:
+    matrixStats,
+    limma,
+    corpcor,
+    preprocessCore,
+    sva,
+Collate:
+    'explore.R'
+    'transform.R'
