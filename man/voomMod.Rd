@@ -2,12 +2,12 @@
 \alias{voomMod}
 \title{Call modified voom on ComBat adjusted data}
 \usage{
-  voomMod(x, Z, lib.size, plot = FALSE)
+  voomMod(x, design, lib.size, plot = FALSE)
 }
 \arguments{
   \item{x}{ComBat adjusted data}
 
-  \item{Z}{reparameterized design matrix}
+  \item{design}{reparameterized design matrix}
 
   \item{lib.size}{library sizes of quantile counts obtained
   from calling logPCM()}

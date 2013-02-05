@@ -13,9 +13,10 @@ interpretZ <- function(X, Z){
 #' Quantile transform counts
 #'
 #' @param x raw counts
+#' @param verbose print head of transformed matrix if TRUE (default=FALSE)
 #' @return matrix of quantile normalized counts
 #' @export
-qNorm <- function(x){
+qNorm <- function(x, verbose=FALSE){
   rn <- rownames(x)
   cn <- colnames(x)
   
@@ -24,7 +25,8 @@ qNorm <- function(x){
   rownames(y) <- rn
   colnames(y) <- cn
   
-  print(head(y))
+  if (verbose)
+    print(head(y))
   
   return(y)  
 }
@@ -35,27 +37,26 @@ qNorm <- function(x){
 #' @param qcounts quantile normalized counts
 #' @return list containing log2(quantile counts per mil reads) and library sizes
 #' @export
-log2CPM <- function(qcounts){
-  y <- voom(qcounts, design=matrix(rep(1, ncol(qcounts)), ncol=1))
-  y <- list(logPerMilCounts=y$E, libSize=y$lib.size)
-  return(y)
+log2CPM <- function(qcounts, lib.size=colSums(qcounts)){
+  if (is.null(lib.size)) 
+    lib.size <- colSums(qcounts)
+  y <- t(log2(t(qcounts + 0.5)/(lib.size + 1) * 1e+06))
+  return(list(y=y, lib.size=lib.size))
 }
 
 
 #' Call modified voom on ComBat adjusted data
 #'
 #' @param x ComBat adjusted data
-#' @param Z reparameterized design matrix
+#' @param design reparameterized design matrix
 #' @param lib.size library sizes of quantile counts obtained from calling logPCM()
 #' @param plot logical indicating whether or not to plot mean var trend
 #' @return Elist object 
 #' @export
-voomMod <- function(x, Z, lib.size, plot=FALSE){
+voomMod <- function(x, design, lib.size, plot=FALSE){
   out <- list()  
   
   y <- as.matrix(x)
-  design <- Z
-  
   fit <- lmFit(y, design)
   
   if (is.null(fit$Amean)) 
@@ -110,22 +111,22 @@ voomMod <- function(x, Z, lib.size, plot=FALSE){
 combatMod <- function(dat, batch, mod, numCovs = NULL, par.prior = TRUE, 
                       prior.plots = FALSE){
   
-  design.mat <- sva:::design.mat
-  build.design <- sva:::build.design
-  list.batch <- sva:::list.batch
-  int.eprior <- sva:::int.eprior
-  it.sol <- sva:::it.sol
-  aprior <- sva:::aprior
-  bprior <- sva:::bprior
-  
+#   design.mat <- sva:::design.mat
+#   build.design <- sva:::build.design
+#   list.batch <- sva:::list.batch
+#   int.eprior <- sva:::int.eprior
+#   it.sol <- sva:::it.sol
+#   aprior <- sva:::aprior
+#   bprior <- sva:::bprior
+#   
   mod = cbind(mod, batch)
   check = apply(mod, 2, function(x) all(x == 1))
   mod = as.matrix(mod[, !check])
   colnames(mod)[ncol(mod)] = "Batch"
   if (sum(check) > 0 & !is.null(numCovs)) 
     numCovs = numCovs - 1
-  design <- design.mat(mod, numCov = numCovs)
-  batches <- list.batch(mod)
+  design <- sva:::design.mat(mod, numCov = numCovs)
+  batches <- sva:::list.batch(mod)
   n.batch <- length(batches)
   n.batches <- sapply(batches, length)
   n.array <- sum(n.batches)
@@ -170,8 +171,8 @@ combatMod <- function(dat, batch, mod, numCovs = NULL, par.prior = TRUE,
   }
   gamma.bar <- apply(gamma.hat, 1, mean)
   t2 <- apply(gamma.hat, 1, var)
-  a.prior <- apply(delta.hat, 1, aprior)
-  b.prior <- apply(delta.hat, 1, bprior)
+  a.prior <- apply(delta.hat, 1, sva:::aprior)
+  b.prior <- apply(delta.hat, 1, sva:::bprior)
   if (prior.plots & par.prior) {
     par(mfrow = c(2, 2))
     tmp <- density(gamma.hat[1, ])
@@ -194,7 +195,7 @@ combatMod <- function(dat, batch, mod, numCovs = NULL, par.prior = TRUE,
   if (par.prior) {
     cat("Finding parametric adjustments\n")
     for (i in 1:n.batch) {
-      temp <- it.sol(s.data[, batches[[i]]], gamma.hat[i,], delta.hat[i, ], gamma.bar[i], 
+      temp <- sva:::it.sol(s.data[, batches[[i]]], gamma.hat[i,], delta.hat[i, ], gamma.bar[i], 
                      t2[i], a.prior[i], b.prior[i])
       gamma.star <- rbind(gamma.star, temp[1, ])
       delta.star <- rbind(delta.star, temp[2, ])
@@ -203,7 +204,7 @@ combatMod <- function(dat, batch, mod, numCovs = NULL, par.prior = TRUE,
   else {
     cat("Finding nonparametric adjustments\n")
     for (i in 1:n.batch) {
-      temp <- int.eprior(as.matrix(s.data[, batches[[i]]]), 
+      temp <- sva:::int.prior(as.matrix(s.data[, batches[[i]]]), 
                          gamma.hat[i, ], delta.hat[i, ])
       gamma.star <- rbind(gamma.star, temp[1, ])
       delta.star <- rbind(delta.star, temp[2, ])

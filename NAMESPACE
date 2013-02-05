@@ -1,3 +1,4 @@
+export(batchSEQ)
 export(combatMod)
 export(interpretZ)
 export(log2CPM)

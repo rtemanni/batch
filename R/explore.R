@@ -74,8 +74,8 @@ pcRes <- function(v, d, condition=NULL, batch=NULL){
 plotPC <- function(v, d, ...){
   pcVar <- round((d^2)/sum(d^2)*100,2)
   
-  yl <- paste("pc1", "   %-var is", pcVar[1]) 
-  xl <- paste("pc2", "    %-var is", pcVar[2]) 
+  xl <- sprintf("pc 1: %.2f%% variance", pcVar[1])  
+  yl <- sprintf("pc 2: %.2f%% variance", pcVar[2]) 
   
-  plot(v[,2], v[,1], ylab=yl, xlab=xl, ...)
+  plot(v[,1], v[,2], xlab=xl, ylab=yl, ...)
 }
