@@ -12,9 +12,11 @@
 #' @param lib.size library sizes, if NULL or missing, uses the sum of quantile-normalized counts (default=NULL)
 #' @param verbose print extra information
 #' @param plot plot the mean-variance fit
+#' @param condition factor indicating biological condition
+#' @param ... pass arguments to internal functions
 #' @return list with components elist (result of calling voom) and combatEstimates (batch effect estimates from combat)
 #' @export
-batchSEQ <- function(counts, design, batch, lib.size=NULL, verbose=FALSE, plot=FALSE, ...)
+batchSEQ <- function(counts, design, batch, condition, lib.size=NULL, verbose=FALSE, plot=FALSE, ...)
 {
   # quantile normalize counts
   qcounts = qNorm(counts, verbose=verbose)
@@ -25,7 +27,7 @@ batchSEQ <- function(counts, design, batch, lib.size=NULL, verbose=FALSE, plot=F
   lib.size = res$lib.size
   
   # run combat on the log(cpm) data
-  res = combatMod(y, batch, design, ...)
+  res = combatMod(y, batch, condition, ...)
   
   y = res$bayesdata
   res = res[c("gamma.star", "delta.star")]

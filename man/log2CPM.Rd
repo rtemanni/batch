@@ -6,6 +6,8 @@
 }
 \arguments{
   \item{qcounts}{quantile normalized counts}
+
+  \item{lib.size}{default is colsums(qcounts)}
 }
 \value{
   list containing log2(quantile counts per mil reads) and

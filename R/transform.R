@@ -35,6 +35,7 @@ qNorm <- function(x, verbose=FALSE){
 #' Compute log2(quantile counts per mil reads) and library size for each sample
 #'
 #' @param qcounts quantile normalized counts
+#' @param lib.size default is colsums(qcounts)
 #' @return list containing log2(quantile counts per mil reads) and library sizes
 #' @export
 log2CPM <- function(qcounts, lib.size=colSums(qcounts)){

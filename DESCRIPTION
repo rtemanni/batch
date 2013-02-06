@@ -11,6 +11,7 @@ Depends:
     corpcor,
     preprocessCore,
     sva,
+    MASS,
 Suggests:
     pasilla,
 Collate:
