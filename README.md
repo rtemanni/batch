@@ -1,1 +1,1 @@
-functions to useful for detecting batch effects
+functions useful for detecting batch effects

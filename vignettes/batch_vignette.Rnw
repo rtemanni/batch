@@ -1,0 +1,211 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{fullpage}
+\usepackage{url}
+\usepackage{xspace}
+
+
+\title{Examples of how to use functions}
+\author{Kwame Okrah, Hector Bravo}
+\date{\today}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+\maketitle
+
+\section{Overview of package}
+The purpose of this package is to streamline the process for analyzing RNA-seq data
+with potential batch effects. The pipeline includes 1) quantile normalization 2) log-transformation of counts 3) combat batch correction 4) voom calculation of weights for testing from mean-variance relationship.\\\\
+The functions in this package can be grouped into two main categories:
+
+\begin{enumerate}
+\item The functions used for assessing batch effects.
+    \begin{itemize}
+    \item makeSVD
+    \item pcRes
+    \item plotPC
+    \end{itemize}
+\item The functions for removing batch effect and computing weights for limma.
+    \begin{itemize}
+    \item interpretZ
+    \item qNorm
+    \item log2CPM
+    \item voomMod
+    \item combatMod
+    \item batchSEQ$^*$
+    \end{itemize}
+\end{enumerate}
+$^*$ batchSEQ is the pipeline function. It combines qNorm, log2CPM, voomMod, and combatMod
+into one step.\\\\
+Below we will illustrte how to use these functions using the pasilla data set.\\\\
+{\bf note}: All the functions in this package have a detailed help file which tells you
+what kind of objects go in and what kind of objects come out. It is important to look
+at these help files for each function.
+
+\section{Examples of how to use the functions}
+We will use the pasilla dataset found in the pasilla package. (This is the same dataset used
+in the DESeq vignette)
+<<>>=
+require(pasilla)
+# locate the path of the dataset and read in the dataset
+datafile <- system.file("extdata/pasilla_gene_counts.tsv", package="pasilla")
+counts <- read.table(datafile, header=TRUE, row.names=1)
+head(counts)
+@
+In this dataset there are two biological conditions treated (3 samples) and untreated (4 samples). 
+Two samples are single-end and the other 4 are paired-end. We will use sigle-end and paired-end
+as bathch effects. Below is the design (pheno data.frame).
+<<>>=
+design <- data.frame(row.names=colnames(counts), 
+                    condition=c("untreated","untreated","untreated",
+                                "untreated","treated","treated","treated"),
+                    libType=c("single-end","single-end","paired-end",
+                              "paired-end","single-end","paired-end","paired-end"))
+design
+@
+\subsection{Explore data for batch effects}
+We will begin our analysis by exploring the data for possible/significant batch effects. We will 
+begin by calling the function makeSVD on counts. This fucntion produces the pricipal components 
+data necessary for any futher exploratory analysis. However, before calling makeSVD on the
+counts we must normalize the counts. We will normalize the counts using the qauntile normalization 
+method via the function qNorm.
+<<>>=
+# load batch package
+require(batch)
+#
+# quantile normalize
+qcounts <- qNorm(counts)
+#
+# conpute princ. comp. data. 
+# returns a list with two components v and d.
+res <- makeSVD(qcounts)
+@
+We can now call pcRes and plotPC.
+\begin{itemize}
+\item pcRes: computes variance of each principal component and how they correlate with batch and condition.\\\\
+Explain results in table: Hector
+<<>>=
+tab <- pcRes(res$v,res$d, design$condition, design$libType)
+tab
+@
+We can call pcRes without batch nor condition. This can be useful when a specific batch
+is not known a priori. In our example we can pretend not to know that libType is a batch effect.\\\\
+Explain results in table: Hector
+<<>>=
+# call without batch
+pcRes(res$v,res$d, design$condition)
+#
+# call without batch nor condition
+pcRes(res$v,res$d)
+@
+\newpage
+\item plotPC: Plot first 2 principal components. This function works like the regular plot function 
+in R. ie. We can add all the options to make the plot sensible and well labelled. Below is an 
+example:
+<<fig=TRUE>>=
+# a 'raw' plot the first 2 principal components
+plotPC(res$v, res$d)
+@
+As we can see this plot is not very useful since we have not labelled the points. We can choose
+to labell the plot in anyway we see fit. In the example below we label batch with the shape of 
+the point and condition with color.
+\newpage
+<<fig=TRUE>>=
+# a labelled plotPC
+plotPC(res$v,res$d, 
+       col=design$condition, # color by batch
+       pch=ifelse(design$libType=="single-end", 21, 22), # shape be condition
+       main="Principal component plot: count scale")
+@
+\end{itemize}
+We have shown how to use the three `exploratory' functions (makeSVD, pcRes, pcPlot). Note that 
+we could have worked with log2(quantile counts per mil reads) instead.
+% \newpage
+% <<>>=
+% # produces a list of log2(quantile counts per mil reads) and lib.size
+% hold <- log2CPM(qcounts)
+% names(hold) # look at names of result list
+% res2 <- makeSVD(hold$y) # grab y component and make svd
+% tab2 <- pcRes(res2$v,res2$d, design$condition, design$libType)
+% tab2
+% @
+% 
+% <<fig=TRUE>>=
+% # a labelled plotPC
+% plotPC(res2$v, res2$d, 
+%        col=design$condition, # color by batch
+%        pch=ifelse(design$libType=="single-end", 21, 22), # shape be condition
+%        main="Principal component plot: log scale")
+% @
+
+\subsection{Correct data for batch effects}
+To correct for the batch effect we call the pipeline function batchSEQ. In addition to 
+counts(raw unadjusted counts), batch and condition; batchSEQ requires a model matrix.
+More to come on model matrices later. batchSEQ produces a list with 2 components.
+\begin{enumerate}
+\item elist: a special list that limma will use. It contains the log counts, weights, model matrix, etc. (Consult limma vignette for details.)
+\item combatEstimates: this is a list of dataframes containing the location (gamma star) and scale (delta.star) batch adjustments. 
+\end{enumerate}
+<<>>=
+# make model matrix
+mod <- model.matrix(~1+condition, data=design)
+res <- batchSEQ(counts, mod, design$libType, design$condition)
+names(res)
+lapply(res$combatEstimates, head)
+@
+Now let us look at the elist component.
+<<>>=
+edat <- res$elist
+edat
+@
+At this point we can check our results to see have `removed' batch effects.
+<<>>=
+# grab batch adjusted log counts from the elist
+res2 <- makeSVD(edat$E)
+tab2 <- pcRes(res2$v,res2$d, condition=design$condition, batch=design$libType)
+tab2
+@
+\newpage
+<<fig=TRUE>>=
+plotPC(res2$v, res2$d, 
+       col=design$condition, # color by batch
+       pch=ifelse(design$libType=="single-end", 21, 22), # shape be condition
+       main="Principal component plot: log scale")
+@
+
+The data is now ready for statistical analyis. Note that we could have achieved the results of the
+batchSEQ function by calling the individual functions in the pipelie.
+
+\begin{enumerate}
+\item Quantile normalization.
+<<>>=
+# see help for input and output
+qcounts <- qNorm(counts) 
+@
+\item Log-transform quantile normalized counts.
+<<>>=
+# see help for input and output
+res <- log2CPM(qcounts) 
+y <- res$y
+lib.size <- res$lib.size
+@
+\item Combat batch correction
+<<>>=
+# see help for input and output
+res <- combatMod(res$y, design$libType, design$condition)
+y <- res$bayesdata
+@
+\item Voom calculation of weights for testing from mean-variance relationship
+<<>>=
+mod <- model.matrix(~1+condition, data=design)
+# see help for input and output
+voomRes <- voomMod(y, mod, lib.size, plot=FALSE)
+voomRes
+@
+\end{enumerate}
+
+\section{Design Matrix and Statistical Analysis via Limma}
+
+More on this after we meet.
+\end{document}
